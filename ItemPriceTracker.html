@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Item Price Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #eee;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            margin-bottom: 20px;
+            color: #3B6A82;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #3B6A82;
+        }
+        input[type="text"], input[type="number"] {
+            width: 150px;
+            margin-bottom: 5px;
+            border: 1px solid #ccc;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #3B6A82;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #2C4C60;
+        }
+        .producto-info {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #3B6A82;
+            border-radius: 5px;
+            background-color: #fff;
+            width: 80%;
+        }
+        .precio-info {
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #3B6A82;
+        }
+        #precios-list {
+            width: 80%;
+            margin-top: 20px;
+            overflow-x: auto;
+        }
+        #precios-table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        #precios-table th, #precios-table td {
+            border: 1px solid #3B6A82;
+            padding: 8px;
+            text-align: center;
+        }
+        #acciones {
+            margin-top: 20px;
+        }
+        #acciones button {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Registro de Precios - Patrician 3</h1>
+    <label for="producto">Producto:</label>
+    <input type="text" id="producto">
+    <label for="precioCompra">Precio de compra por unidad:</label>
+    <input type="number" id="precioCompra" min="0" step="0.01">
+    <label for="precioVenta">Precio de venta por unidad:</label>
+    <input type="number" id="precioVenta" min="0" step="0.01">
+    <button onclick="agregarPrecio()">Registrar Precio</button>
+
+    <h2>Lista de Precios Registrados</h2>
+    <div id="precios-list"></div>
+
+    <div id="acciones">
+        <button onclick="guardarDatos()">Guardar Datos</button>
+        <button onclick="reiniciarContadores()">Reiniciar Contadores</button>
+    </div>
+
+    <script>
+        var productos = JSON.parse(localStorage.getItem("productos")) || {};
+
+        function agregarPrecio() {
+            var producto = document.getElementById("producto").value;
+            var precioCompra = parseFloat(document.getElementById("precioCompra").value);
+            var precioVenta = parseFloat(document.getElementById("precioVenta").value);
+
+            if (!productos[producto]) {
+                productos[producto] = {
+                    preciosCompra: [],
+                    preciosVenta: []
+                };
+            }
+
+            productos[producto].preciosCompra.push(precioCompra);
+            productos[producto].preciosVenta.push(precioVenta);
+
+            actualizarListaPrecios();
+        }
+
+        function actualizarListaPrecios() {
+            var preciosList = document.getElementById("precios-list");
+            preciosList.innerHTML = "";
+
+            for (var producto in productos) {
+                if (productos.hasOwnProperty(producto)) {
+                    var preciosCompra = productos[producto].preciosCompra.join(", ");
+                    var preciosVenta = productos[producto].preciosVenta.join(", ");
+                    var infoPrecios = document.createElement("div");
+                    infoPrecios.className = "producto-info";
+                    infoPrecios.innerHTML = "<h2>Información de Precios para " + producto + "</h2>" +
+                        "<table id='precios-table'>" +
+                        "<thead><tr><th>Precio de Compra</th><th>Precio de Venta</th></tr></thead>" +
+                        "<tbody><tr><td>" + preciosCompra + "</td><td>" + preciosVenta + "</td></tr></tbody>" +
+                        "</table>" +
+                        "<div class='precio-info'><strong>Precio máximo de compra:</strong> " + Math.max(...productos[producto].preciosCompra).toFixed(2) +
+                        " | <strong>Precio mínimo de compra:</strong> " + Math.min(...productos[producto].preciosCompra).toFixed(2) +
+                        " | <strong>Precio medio de compra:</strong> " + calcularMedia(productos[producto].preciosCompra).toFixed(2) + "</div>" +
+                        "<div class='precio-info'><strong>Precio máximo de venta:</strong> " + Math.max(...productos[producto].preciosVenta).toFixed(2) +
+                        " | <strong>Precio mínimo de venta:</strong> " + Math.min(...productos[producto].preciosVenta).toFixed(2) +
+                        " | <strong>Precio medio de venta:</strong> " + calcularMedia(productos[producto].preciosVenta).toFixed(2) + "</div>";
+                    preciosList.appendChild(infoPrecios);
+                }
+            }
+        }
+
+        function calcularMedia(array) {
+            return array.reduce((a, b) => a + b, 0) / array.length;
+        }
+
+        function guardarDatos() {
+            localStorage.setItem("productos", JSON.stringify(productos));
+            alert("¡Los datos han sido guardados localmente!");
+        }
+
+        function reiniciarContadores() {
+            productos = {};
+            localStorage.removeItem("productos");
+            actualizarListaPrecios();
+            alert("¡Los contadores han sido reiniciados y los datos eliminados!");
+        }
+    </script>
+</body>
+</html>
