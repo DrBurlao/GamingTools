@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Archivo de Mods de Project Zomboid</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f2f2f2;
+        }
+        .container {
+            text-align: center;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Generador de Archivo de Mods de Project Zomboid</h1>
+    <input type="file" id="folderInput" webkitdirectory directory multiple>
+    <button onclick="generateModsFile()">Generar archivo mods.txt</button>
+</div>
+
+<script>
+    async function readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => resolve(event.target.result);
+            reader.onerror = (error) => reject(error);
+            reader.readAsText(file);
+        });
+    }
+
+    async function generateModsFile() {
+        const folderInput = document.getElementById('folderInput');
+        const files = folderInput.files;
+
+        if (!files.length) {
+            alert("Por favor, selecciona la carpeta de mods.");
+            return;
+        }
+
+        let modsData = "Mods=\n\n";
+        let workshopItems = []; // Array para almacenar los IDs de workshop
+        let modsByCategory = {}; // Objeto para almacenar mods por categoría
+        let mapName = ""; // Variable para almacenar el nombre del mapa
+
+        // Organizar archivos por ID de Workshop (subcarpeta)
+        for (const file of files) {
+            const pathSegments = file.webkitRelativePath.split("/");
+            if (pathSegments.length > 1) {
+                const folderName = pathSegments[0]; // Nombre de la carpeta principal (ID de Steam)
+                const workshopID = pathSegments[1]; // Subcarpeta que representa el ID de Steam
+                const fileName = pathSegments[pathSegments.length - 1];
+
+                // Leer el archivo .info para obtener el nombre del mod
+                if (fileName.endsWith(".info")) {
+                    const content = await readFileAsText(file);
+                    const modNameLine = content.split("\n").find(line => line.includes("name="));
+                    const modName = modNameLine ? modNameLine.split("=")[1]?.trim() || "Nombre desconocido" : "Nombre desconocido";
+                    
+                    // Agregar el mod al objeto por categoría
+                    if (!modsByCategory[workshopID]) {
+                        modsByCategory[workshopID] = [];
+                    }
+                    modsByCategory[workshopID].push(modName); // Añadir el nombre del mod
+                }
+
+                // Leer archivos de mapas (.bsp) y asignar el nombre del mapa
+                if (pathSegments.includes("media") && fileName.endsWith(".bsp")) {
+                    mapName = fileName.replace(".bsp", ""); // Extraer el nombre del mapa
+                }
+            }
+        }
+
+        // Construir el contenido del archivo mods.txt
+        for (const category in modsByCategory) {
+            modsData += `Carpeta: ${category}\n`;
+            modsData += `Mods: ${modsByCategory[category].join('; ')}\n\n`; // Nombres de mods separados por ;
+        }
+
+        // Añadir el nombre del mapa al resultado
+        if (mapName) {
+            modsData += `Map=${mapName}\n\n`;
+        }
+
+        // Formatear WorkshopItems
+        workshopItems = Object.keys(modsByCategory); // Asumiendo que cada categoría es un ID de workshop
+        if (workshopItems.length) {
+            modsData += `WorkshopItems=${workshopItems.join(';')}\n`;
+        } else {
+            modsData += `WorkshopItems=\n`;
+        }
+
+        // Crear el archivo mods.txt
+        const blob = new Blob([modsData], { type: "text/plain" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "mods.txt";
+        link.click();
+    }
+</script>
+
+</body>
+</html>
